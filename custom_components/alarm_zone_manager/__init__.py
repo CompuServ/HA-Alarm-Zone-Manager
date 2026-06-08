@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-import voluptuous as vol
-
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
@@ -17,7 +16,6 @@ from .const import (
     ATTR_ZONE_ID,
     ATTR_ZONE_NAME,
     DOMAIN,
-    SERVICE_CONFIGURE_ZONE,
     SERVICE_FIRE_ZONE_EVENT,
     SERVICE_TEST_ZONE_ACTIVATE,
     SERVICE_TRIGGER_ZONE,
@@ -56,7 +54,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.http.register_static_path(
         "/alarm_zone_manager/keypad-card.js",
-        str(__import__("pathlib").Path(__file__).parent / "frontend" / "lovelace" / "alarm-keypad-card.js"),
+        str(
+            __import__("pathlib").Path(__file__).parent
+            / "frontend"
+            / "lovelace"
+            / "alarm-keypad-card.js"
+        ),
         cache_headers=False,
     )
 
@@ -100,7 +103,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         schema=vol.Schema(
             {
                 vol.Required(ATTR_ZONE_ID): vol.Coerce(int),
-                vol.Required("duration_ms"): vol.All(vol.Coerce(int), vol.Range(min=100, max=300000)),
+                vol.Required("duration_ms"): vol.All(
+                    vol.Coerce(int), vol.Range(min=100, max=300000)
+                ),
             }
         ),
     )
