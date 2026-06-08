@@ -22,7 +22,7 @@ from .const import (
 )
 from .coordinator import AlarmZoneCoordinator
 from .keypad import KeypadManager
-from .panel import async_register_panel
+from .panel import async_register_panel, async_register_static_assets
 from .websocket_api import async_register_websocket_handlers
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up integration."""
-    await async_register_panel(hass)
+    await async_register_static_assets(hass)
     return True
 
 
@@ -51,6 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await keypad_manager.async_setup()
 
     async_register_websocket_handlers(hass)
+    await async_register_panel(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -116,8 +117,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload config entry."""
+    from homeassistant.components import frontend
+
     coordinator: AlarmZoneCoordinator = hass.data[DOMAIN]["coordinator"]
     await coordinator.async_shutdown()
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    frontend.async_remove_panel(hass, DOMAIN, warn_if_unknown=False)
     hass.data.pop(DOMAIN, None)
     return unload_ok

@@ -11,7 +11,16 @@ class AlarmZonePanel extends HTMLElement {
     this._log = [];
     this._zoneTestEnabled = false;
     this._editingZone = null;
+    this._error = null;
     this.attachShadow({ mode: "open" });
+    this._renderLoading();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (!this._loaded && !this._error) {
+      this._renderLoading();
+    }
   }
 
   set hass(hass) {
@@ -27,41 +36,124 @@ class AlarmZonePanel extends HTMLElement {
   }
 
   async _loadAll() {
-    const [z, p, k, u, o, l] = await Promise.all([
-      this._call("alarm_zone_manager/list_zones"),
-      this._call("alarm_zone_manager/list_partitions"),
-      this._call("alarm_zone_manager/list_keypads"),
-      this._call("alarm_zone_manager/list_alarm_users"),
-      this._call("alarm_zone_manager/get_options"),
-      this._call("alarm_zone_manager/list_event_log"),
-    ]);
-    this._zones = z.zones || [];
-    this._zoneTestEnabled = z.zone_test_tool_enabled;
-    this._partitions = p.partitions || [];
-    this._keypads = k.keypads || [];
-    this._users = u.users || [];
-    this._options = o;
-    this._log = l.entries || [];
-    this._render();
+    this._error = null;
+    this._renderLoading();
+    try {
+      const [z, p, k, u, o, l] = await Promise.all([
+        this._call("alarm_zone_manager/list_zones"),
+        this._call("alarm_zone_manager/list_partitions"),
+        this._call("alarm_zone_manager/list_keypads"),
+        this._call("alarm_zone_manager/list_alarm_users"),
+        this._call("alarm_zone_manager/get_options"),
+        this._call("alarm_zone_manager/list_event_log"),
+      ]);
+      this._zones = z.zones || [];
+      this._zoneTestEnabled = z.zone_test_tool_enabled;
+      this._partitions = p.partitions || [];
+      this._keypads = k.keypads || [];
+      this._users = u.users || [];
+      this._options = o;
+      this._log = l.entries || [];
+      this._render();
+    } catch (err) {
+      this._error = err?.message || String(err);
+      this._renderError();
+    }
+  }
+
+  _renderLoading() {
+    if (!this.shadowRoot) return;
+    this.shadowRoot.innerHTML = `
+      <style>${this._style()}</style>
+      <div class="status">Loading Alarm Zones...</div>
+    `;
+  }
+
+  _renderError() {
+    if (!this.shadowRoot) return;
+    this.shadowRoot.innerHTML = `
+      <style>${this._style()}</style>
+      <div class="status error">
+        <p>Unable to load Alarm Zone Manager.</p>
+        <p>${this._error}</p>
+        <p>Ensure the integration is configured under Settings → Devices &amp; services, then reload the page.</p>
+        <button id="retry-load">Retry</button>
+      </div>
+    `;
+    const retry = this.shadowRoot.querySelector("#retry-load");
+    if (retry) {
+      retry.onclick = () => {
+        this._loaded = false;
+        if (this._hass) {
+          this._loaded = true;
+          this._loadAll();
+        } else {
+          this._renderLoading();
+        }
+      };
+    }
   }
 
   _style() {
     return `
-      :host { display:block; padding:16px; font-family:Roboto,sans-serif; }
+      :host {
+        display: block;
+        min-height: 100%;
+        padding: 16px;
+        font-family: Roboto, sans-serif;
+        background-color: var(--primary-background-color, #fafafa);
+        color: var(--primary-text-color, #212121);
+        box-sizing: border-box;
+      }
+      .status { padding: 24px; font-size: 16px; }
+      .status.error p { margin: 8px 0; }
       .tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-      .tab { padding:8px 14px; border:1px solid #ccc; background:#f5f5f5; cursor:pointer; border-radius:4px; }
-      .tab.active { background:#1976d2; color:#fff; border-color:#1976d2; }
+      .tab {
+        padding:8px 14px;
+        border:1px solid var(--divider-color, #ccc);
+        background:var(--card-background-color, #f5f5f5);
+        color:var(--primary-text-color, #212121);
+        cursor:pointer;
+        border-radius:4px;
+      }
+      .tab.active {
+        background:var(--primary-color, #1976d2);
+        color:var(--text-primary-color, #fff);
+        border-color:var(--primary-color, #1976d2);
+      }
       table { width:100%; border-collapse:collapse; font-size:13px; }
-      th, td { border:1px solid #ddd; padding:6px 8px; text-align:left; }
-      th { background:#e0e0e0; position:sticky; top:0; }
-      tr:nth-child(even) { background:#f5f5f5; }
-      tr:nth-child(odd) { background:#ebebeb; }
-      tr.editing { background:#e3f2fd !important; }
-      .invalid { color:#c62828; }
-      .grayed { color:#888; background:#f0f0f0; }
-      input, select { width:100%; box-sizing:border-box; }
+      th, td {
+        border:1px solid var(--divider-color, #ddd);
+        padding:6px 8px;
+        text-align:left;
+      }
+      th {
+        background:var(--table-header-background-color, #e0e0e0);
+        color:var(--primary-text-color, #212121);
+        position:sticky;
+        top:0;
+      }
+      tr:nth-child(even) { background:var(--table-row-background-color, #f5f5f5); }
+      tr:nth-child(odd) { background:var(--card-background-color, #ebebeb); }
+      tr.editing { background:var(--state-inactive-color, #e3f2fd) !important; }
+      .invalid { color:var(--error-color, #c62828); }
+      .grayed { color:var(--secondary-text-color, #888); opacity:0.85; }
+      input, select {
+        width:100%;
+        box-sizing:border-box;
+        background:var(--card-background-color, #fff);
+        color:var(--primary-text-color, #212121);
+        border:1px solid var(--divider-color, #ccc);
+      }
       .toolbar { margin-bottom:10px; display:flex; gap:8px; }
-      button { padding:6px 12px; cursor:pointer; }
+      button {
+        padding:6px 12px;
+        cursor:pointer;
+        background:var(--primary-color, #1976d2);
+        color:var(--text-primary-color, #fff);
+        border:none;
+        border-radius:4px;
+      }
       .grid-wrap { max-height:70vh; overflow:auto; }
       .form-row { margin:8px 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
       label { min-width:180px; }

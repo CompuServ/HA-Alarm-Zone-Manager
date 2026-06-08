@@ -4,17 +4,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from homeassistant.components import frontend
+from homeassistant.components import panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PANEL_ICON, PANEL_TITLE, PANEL_URL
 
 KEYPAD_CARD_URL = "/alarm_zone_manager/keypad-card.js"
+DATA_STATIC_REGISTERED = f"{DOMAIN}_static_registered"
 
 
-async def async_register_panel(hass: HomeAssistant) -> None:
-    """Register custom sidebar panel and static assets."""
+async def async_register_static_assets(hass: HomeAssistant) -> None:
+    """Register panel and Lovelace static assets once."""
+    if hass.data.get(DATA_STATIC_REGISTERED):
+        return
+
     base = Path(__file__).parent
     await hass.http.async_register_static_paths(
         [
@@ -30,19 +34,24 @@ async def async_register_panel(hass: HomeAssistant) -> None:
             ),
         ]
     )
-    frontend.async_register_built_in_panel(
+    hass.data[DATA_STATIC_REGISTERED] = True
+
+
+async def async_register_panel(hass: HomeAssistant) -> None:
+    """Register custom sidebar panel."""
+    from homeassistant.components import frontend
+
+    if frontend.async_panel_exists(hass, DOMAIN):
+        frontend.async_remove_panel(hass, DOMAIN, warn_if_unknown=False)
+
+    await panel_custom.async_register_panel(
         hass,
-        DOMAIN,
+        frontend_url_path=DOMAIN,
+        webcomponent_name="alarm-zone-panel",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        frontend_url_path=DOMAIN,
+        js_url=f"{PANEL_URL}/alarm-zone-panel.js",
+        embed_iframe=False,
         require_admin=False,
-        config={
-            "_panel_custom": {
-                "name": "alarm-zone-panel",
-                "embed_iframe": False,
-                "trust_external": False,
-                "js_url": f"{PANEL_URL}/alarm-zone-panel.js",
-            }
-        },
+        config_panel_domain=DOMAIN,
     )

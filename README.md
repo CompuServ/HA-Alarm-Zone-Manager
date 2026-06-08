@@ -46,8 +46,6 @@ HA-Alarm-Zone-Manager/
 └── README.md
 ```
 
-> **Important:** The folder must be spelled `custom_components` (not `custom_componants`).
-
 ## Keypads on Dashboard
 
 1. Enable a keypad in the **Keypads** tab.
