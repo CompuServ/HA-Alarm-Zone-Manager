@@ -1,0 +1,53 @@
+trigger_zone:
+  name: Trigger zone
+  description: Manually run a zone's configured action.
+  fields:
+    zone_id:
+      name: Zone ID
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 1024
+
+test_zone_activate:
+  name: Test zone activate
+  description: Simulate zone input active for a duration (developer tool).
+  fields:
+    zone_id:
+      name: Zone ID
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 1024
+    duration_ms:
+      name: Duration (ms)
+      required: true
+      selector:
+        number:
+          min: 100
+          max: 300000
+
+fire_zone_event:
+  name: Fire zone event
+  description: Emit a zone state changed event.
+  fields:
+    zone_id:
+      name: Zone ID
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 1024
+    zone_name:
+      name: Zone name
+      selector:
+        text:
+    event:
+      name: Event
+      selector:
+        select:
+          options:
+            - alarm
+            - restoral

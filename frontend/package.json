@@ -1,0 +1,8 @@
+{
+  "name": "alarm-zone-manager-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "echo Pre-built dist/alarm-zone-panel.js is used"
+  }
+}
