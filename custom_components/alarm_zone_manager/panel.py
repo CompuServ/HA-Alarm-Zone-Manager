@@ -5,18 +5,30 @@ from __future__ import annotations
 from pathlib import Path
 
 from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PANEL_ICON, PANEL_TITLE, PANEL_URL
 
+KEYPAD_CARD_URL = "/alarm_zone_manager/keypad-card.js"
 
-def async_register_panel(hass: HomeAssistant) -> None:
-    """Register custom sidebar panel."""
-    path = Path(__file__).parent / "frontend" / "dist"
-    hass.http.register_static_path(
-        PANEL_URL,
-        str(path),
-        cache_headers=False,
+
+async def async_register_panel(hass: HomeAssistant) -> None:
+    """Register custom sidebar panel and static assets."""
+    base = Path(__file__).parent
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                PANEL_URL,
+                str(base / "frontend" / "dist"),
+                cache_headers=False,
+            ),
+            StaticPathConfig(
+                KEYPAD_CARD_URL,
+                str(base / "frontend" / "lovelace" / "alarm-keypad-card.js"),
+                cache_headers=True,
+            ),
+        ]
     )
     frontend.async_register_built_in_panel(
         component_name=DOMAIN,

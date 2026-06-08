@@ -34,7 +34,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up integration."""
-    async_register_panel(hass)
+    await async_register_panel(hass)
     return True
 
 
@@ -51,17 +51,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await keypad_manager.async_setup()
 
     async_register_websocket_handlers(hass)
-
-    hass.http.register_static_path(
-        "/alarm_zone_manager/keypad-card.js",
-        str(
-            __import__("pathlib").Path(__file__).parent
-            / "frontend"
-            / "lovelace"
-            / "alarm-keypad-card.js"
-        ),
-        cache_headers=False,
-    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
