@@ -46,6 +46,10 @@ HA-Alarm-Zone-Manager/
 └── README.md
 ```
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4b959c051e0afde00a7251717ae828b27ab3d927
 ## Keypads on Dashboard
 
 1. Enable a keypad in the **Keypads** tab.
