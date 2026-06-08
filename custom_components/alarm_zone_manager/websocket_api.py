@@ -341,3 +341,24 @@ def async_register_websocket_handlers(hass: HomeAssistant) -> None:
             )
         entities.sort(key=lambda e: e["name"].lower())
         connection.send_result(msg["id"], {"entities": entities})
+
+    for handler in (
+        ws_list_zones,
+        ws_update_zone,
+        ws_list_partitions,
+        ws_update_partition,
+        ws_list_keypads,
+        ws_update_keypad,
+        ws_list_users,
+        ws_update_user,
+        ws_get_options,
+        ws_update_options,
+        ws_generate_code,
+        ws_verify_code,
+        ws_test_zone,
+        ws_list_log,
+        ws_reset_log,
+        ws_export_log,
+        ws_list_entities,
+    ):
+        websocket_api.async_register_command(hass, handler)
