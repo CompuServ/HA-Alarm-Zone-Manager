@@ -12,6 +12,7 @@ from .const import DOMAIN, PANEL_ICON, PANEL_TITLE, PANEL_URL
 
 KEYPAD_CARD_URL = "/alarm_zone_manager/keypad-card.js"
 DATA_STATIC_REGISTERED = f"{DOMAIN}_static_registered"
+PANEL_JS_VERSION = "0.1.6"
 
 
 async def async_register_static_assets(hass: HomeAssistant) -> None:
@@ -50,7 +51,7 @@ async def async_register_panel(hass: HomeAssistant) -> None:
         webcomponent_name="alarm-zone-panel",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        js_url=f"{PANEL_URL}/alarm-zone-panel.js",
+        js_url=f"{PANEL_URL}/alarm-zone-panel.js?v={PANEL_JS_VERSION}",
         embed_iframe=False,
         require_admin=False,
         config_panel_domain=DOMAIN,

@@ -1,3 +1,6 @@
+(() => {
+  "use strict";
+
 const ZONES_PER_PAGE = 128;
 const TOTAL_ZONE_PAGES = 8;
 const MIN_PARTITION = 1;
@@ -72,7 +75,13 @@ class AlarmZonePanel extends HTMLElement {
     this._partitionModalSelection = new Set();
     this._saveError = null;
     this._error = null;
-    this._renderLoading();
+    try {
+      this.attachShadow({ mode: "open" });
+      this._renderLoading();
+    } catch (err) {
+      this.attachShadow({ mode: "open" });
+      this.shadowRoot.innerHTML = `<pre>Panel failed to initialize: ${err.message}</pre>`;
+    }
   }
 
   connectedCallback() {
@@ -84,9 +93,11 @@ class AlarmZonePanel extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    this.querySelectorAll("ha-entity-picker").forEach((picker) => {
-      picker.hass = hass;
-    });
+    if (this.shadowRoot) {
+      this.shadowRoot.querySelectorAll("ha-entity-picker").forEach((picker) => {
+        picker.hass = hass;
+      });
+    }
     if (!this._loaded) {
       this._loaded = true;
       this._loadAll();
@@ -164,14 +175,16 @@ class AlarmZonePanel extends HTMLElement {
   }
 
   _renderLoading() {
-    this.innerHTML = `
+    if (!this.shadowRoot) return;
+    this.shadowRoot.innerHTML = `
       <style>${this._style()}</style>
       <div class="status">Loading Alarm Zones...</div>
     `;
   }
 
   _renderError() {
-    this.innerHTML = `
+    if (!this.shadowRoot) return;
+    this.shadowRoot.innerHTML = `
       <style>${this._style()}</style>
       <div class="status error">
         <p>Unable to load Alarm Zone Manager.</p>
@@ -180,7 +193,7 @@ class AlarmZonePanel extends HTMLElement {
         <button id="retry-load">Retry</button>
       </div>
     `;
-    const retry = this.querySelector("#retry-load");
+    const retry = this.shadowRoot.querySelector("#retry-load");
     if (retry) {
       retry.onclick = () => {
         this._loaded = false;
@@ -204,6 +217,11 @@ class AlarmZonePanel extends HTMLElement {
         background-color: var(--primary-background-color, #fafafa);
         color: var(--primary-text-color, #212121);
         box-sizing: border-box;
+      }
+      .panel-root {
+        min-height: 100%;
+        background-color: var(--primary-background-color, #fafafa);
+        color: var(--primary-text-color, #212121);
       }
       .status { padding: 24px; font-size: 16px; }
       .status.error p { margin: 8px 0; }
@@ -351,6 +369,7 @@ class AlarmZonePanel extends HTMLElement {
   }
 
   _render() {
+    if (!this.shadowRoot) return;
     const content =
       this._tab === "zones"
         ? this._renderZones()
@@ -366,8 +385,9 @@ class AlarmZonePanel extends HTMLElement {
 
     const modal = this._partitionModalOpen ? this._renderPartitionModal() : "";
 
-    this.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <style>${this._style()}</style>
+      <div class="panel-root">
       <div class="tabs">
         ${["zones", "partitions", "keypads", "users", "options", "log"]
           .map(
@@ -384,6 +404,7 @@ class AlarmZonePanel extends HTMLElement {
           .join("")}
       </div>
       ${content}
+      </div>
       ${modal}
     `;
     this._bind();
@@ -393,7 +414,7 @@ class AlarmZonePanel extends HTMLElement {
   }
 
   _bind() {
-    this.querySelectorAll(".tab").forEach((el) => {
+    this.shadowRoot.querySelectorAll(".tab").forEach((el) => {
       el.onclick = () => {
         this._tab = el.dataset.tab;
         this._cancelEdit();
@@ -401,32 +422,32 @@ class AlarmZonePanel extends HTMLElement {
       };
     });
 
-    const saveOpt = this.querySelector("#save-options");
+    const saveOpt = this.shadowRoot.querySelector("#save-options");
     if (saveOpt) saveOpt.onclick = () => this._saveOptions();
 
-    const resetLog = this.querySelector("#reset-log");
+    const resetLog = this.shadowRoot.querySelector("#reset-log");
     if (resetLog) resetLog.onclick = () => this._resetLog();
 
-    const exportLog = this.querySelector("#export-log");
+    const exportLog = this.shadowRoot.querySelector("#export-log");
     if (exportLog) exportLog.onclick = () => this._exportLog();
 
-    this.querySelectorAll("[data-edit-zone]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-edit-zone]").forEach((el) => {
       el.onclick = () => this._startEdit(parseInt(el.dataset.editZone, 10));
     });
 
-    this.querySelectorAll("[data-save-zone]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-save-zone]").forEach((el) => {
       el.onclick = () => this._saveZone(parseInt(el.dataset.saveZone, 10));
     });
 
-    this.querySelectorAll("[data-cancel-zone]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-cancel-zone]").forEach((el) => {
       el.onclick = () => this._cancelEdit();
     });
 
-    this.querySelectorAll("[data-test-zone]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-test-zone]").forEach((el) => {
       el.onclick = () => this._testZone(parseInt(el.dataset.testZone, 10));
     });
 
-    this.querySelectorAll("[data-zone-page]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-zone-page]").forEach((el) => {
       el.onclick = () => {
         this._zonePage = parseInt(el.dataset.zonePage, 10);
         this._cancelEdit();
@@ -434,11 +455,11 @@ class AlarmZonePanel extends HTMLElement {
       };
     });
 
-    this.querySelectorAll("[data-open-partition-modal]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-open-partition-modal]").forEach((el) => {
       el.onclick = () => this._openPartitionModal();
     });
 
-    const zoneType = this.querySelector("#edit-zone-type");
+    const zoneType = this.shadowRoot.querySelector("#edit-zone-type");
     if (zoneType) {
       zoneType.onchange = () => {
         this._editDraft.zone_type = zoneType.value;
@@ -449,7 +470,7 @@ class AlarmZonePanel extends HTMLElement {
       };
     }
 
-    const actionSel = this.querySelector("#edit-action");
+    const actionSel = this.shadowRoot.querySelector("#edit-action");
     if (actionSel) {
       actionSel.onchange = () => {
         this._editDraft.action = actionSel.value;
@@ -528,13 +549,13 @@ class AlarmZonePanel extends HTMLElement {
   _bindPartitionModal() {
     if (!this._partitionModalOpen) return;
 
-    this.querySelectorAll("[data-partition-id]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-partition-id]").forEach((el) => {
       el.onchange = () => {
         const pid = parseInt(el.dataset.partitionId, 10);
         if (el.checked) {
           this._partitionModalSelection.clear();
           this._partitionModalSelection.add(pid);
-          this.querySelectorAll("[data-partition-id]").forEach((other) => {
+          this.shadowRoot.querySelectorAll("[data-partition-id]").forEach((other) => {
             if (other !== el) other.checked = false;
           });
         } else {
@@ -543,7 +564,7 @@ class AlarmZonePanel extends HTMLElement {
       };
     });
 
-    const checkAll = this.querySelector("#partition-check-all");
+    const checkAll = this.shadowRoot.querySelector("#partition-check-all");
     if (checkAll) {
       checkAll.onclick = () => {
         this._partitionModalSelection = new Set(
@@ -553,7 +574,7 @@ class AlarmZonePanel extends HTMLElement {
       };
     }
 
-    const uncheckAll = this.querySelector("#partition-uncheck-all");
+    const uncheckAll = this.shadowRoot.querySelector("#partition-uncheck-all");
     if (uncheckAll) {
       uncheckAll.onclick = () => {
         this._partitionModalSelection.clear();
@@ -561,7 +582,7 @@ class AlarmZonePanel extends HTMLElement {
       };
     }
 
-    const save = this.querySelector("#partition-save");
+    const save = this.shadowRoot.querySelector("#partition-save");
     if (save) {
       save.onclick = () => {
         const selected = [...this._partitionModalSelection].sort((a, b) => a - b);
@@ -581,12 +602,12 @@ class AlarmZonePanel extends HTMLElement {
       };
     }
 
-    const cancel = this.querySelector("#partition-cancel");
+    const cancel = this.shadowRoot.querySelector("#partition-cancel");
     if (cancel) {
       cancel.onclick = () => this._closePartitionModal();
     }
 
-    const overlay = this.querySelector("#partition-modal-overlay");
+    const overlay = this.shadowRoot.querySelector("#partition-modal-overlay");
     if (overlay) {
       overlay.onclick = (ev) => {
         if (ev.target === overlay) this._closePartitionModal();
@@ -629,14 +650,16 @@ class AlarmZonePanel extends HTMLElement {
   }
 
   _mountPicker(hostId, value, domains, onChange) {
-    const host = this.querySelector(`#${hostId}`);
-    if (!host) return;
+    const host = this.shadowRoot.querySelector(`#${hostId}`);
+    if (!host || !this._hass) return;
     host.innerHTML = "";
     const picker = document.createElement("ha-entity-picker");
     picker.hass = this._hass;
     picker.value = value || "";
     picker.includeDomains = domains;
     picker.allowCustomEntity = false;
+    picker.style.display = "block";
+    picker.style.width = "100%";
     picker.addEventListener("value-changed", (ev) => {
       onChange(ev.detail.value);
     });
@@ -777,12 +800,12 @@ class AlarmZonePanel extends HTMLElement {
 
   _collectEditDraftFromForm(zoneId) {
     const draft = { ...this._editDraft };
-    const nameEl = this.querySelector("#edit-zone-name");
-    const typeEl = this.querySelector("#edit-zone-type");
-    const debEl = this.querySelector("#edit-debounce");
-    const actionEl = this.querySelector("#edit-action");
-    const intrusionEl = this.querySelector("#edit-intrusion-type");
-    const fireEl = this.querySelector("#edit-fire-type");
+    const nameEl = this.shadowRoot.querySelector("#edit-zone-name");
+    const typeEl = this.shadowRoot.querySelector("#edit-zone-type");
+    const debEl = this.shadowRoot.querySelector("#edit-debounce");
+    const actionEl = this.shadowRoot.querySelector("#edit-action");
+    const intrusionEl = this.shadowRoot.querySelector("#edit-intrusion-type");
+    const fireEl = this.shadowRoot.querySelector("#edit-fire-type");
 
     if (nameEl) draft.zone_name = nameEl.value.trim();
     if (typeEl) draft.zone_type = typeEl.value;
@@ -823,7 +846,7 @@ class AlarmZonePanel extends HTMLElement {
   }
 
   async _testZone(zoneId) {
-    const inp = this.querySelector(`#dur-${zoneId}`);
+    const inp = this.shadowRoot.querySelector(`#dur-${zoneId}`);
     const sec = parseFloat(inp?.value || 5);
     await this._call("alarm_zone_manager/test_zone_activate", {
       zone_id: zoneId,
@@ -899,13 +922,13 @@ class AlarmZonePanel extends HTMLElement {
 
   async _saveOptions() {
     const opts = { ...this._options };
-    opts.alarm_user_code_type = this.querySelector("#code-type").value;
-    opts.alarm_user_code_length = parseInt(this.querySelector("#code-len").value, 10);
-    opts.default_delay_milliseconds = parseInt(this.querySelector("#deb-ms").value, 10);
-    opts.intrusion_entry_delay_1_seconds = parseInt(this.querySelector("#ed1").value, 10);
-    opts.intrusion_entry_delay_2_seconds = parseInt(this.querySelector("#ed2").value, 10);
-    opts.developer_options_enabled = this.querySelector("#dev-opt").value === "true";
-    opts.zone_test_tool = this.querySelector("#zone-test").value;
+    opts.alarm_user_code_type = this.shadowRoot.querySelector("#code-type").value;
+    opts.alarm_user_code_length = parseInt(this.shadowRoot.querySelector("#code-len").value, 10);
+    opts.default_delay_milliseconds = parseInt(this.shadowRoot.querySelector("#deb-ms").value, 10);
+    opts.intrusion_entry_delay_1_seconds = parseInt(this.shadowRoot.querySelector("#ed1").value, 10);
+    opts.intrusion_entry_delay_2_seconds = parseInt(this.shadowRoot.querySelector("#ed2").value, 10);
+    opts.developer_options_enabled = this.shadowRoot.querySelector("#dev-opt").value === "true";
+    opts.zone_test_tool = this.shadowRoot.querySelector("#zone-test").value;
     await this._call("alarm_zone_manager/update_options", { options: opts });
     await this._loadAll();
   }
@@ -945,4 +968,8 @@ class AlarmZonePanel extends HTMLElement {
   }
 }
 
-customElements.define("alarm-zone-panel", AlarmZonePanel);
+if (!customElements.get("alarm-zone-panel")) {
+  customElements.define("alarm-zone-panel", AlarmZonePanel);
+}
+
+})();
