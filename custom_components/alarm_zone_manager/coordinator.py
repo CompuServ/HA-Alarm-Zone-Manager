@@ -12,6 +12,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .actions import ActionEngine, is_entity_active, resolve_action
 from .const import (
     ACTION_DISABLED,
+    ACTION_MIRROR,
+    ACTION_PULSE,
     DOMAIN,
     EVENT_SOURCE_ZONE_TEST,
     INTRUSION_TYPE_ENTRY_DELAY_1,
@@ -76,10 +78,19 @@ class AlarmZoneCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator."""
+        self._clear_listeners()
+        self.debounce.cancel_all()
+
+    def _clear_listeners(self) -> None:
+        """Remove all state change listeners."""
         for unsub in self._unsub:
             unsub()
         self._unsub.clear()
-        self.debounce.cancel_all()
+
+    async def async_refresh_listeners(self) -> None:
+        """Rebuild input entity listeners after zone configuration changes."""
+        self._clear_listeners()
+        await self._setup_listeners()
 
     def get_partition(self, partition_id: int) -> dict[str, Any] | None:
         for p in self.partition_store.partitions:
@@ -97,17 +108,27 @@ class AlarmZoneCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ) not in (ZONE_TYPE_INTRUSION, ZONE_TYPE_FIRE):
                 continue
 
+            zone_id = zone["zone_id"]
+
             @callback
             def _on_change(
                 event: Event,
-                zone_id: int = zone["zone_id"],
+                tracked_zone_id: int = zone_id,
             ) -> None:
-                self.hass.async_create_task(self._handle_state_change(zone_id))
+                self.hass.async_create_task(
+                    self._handle_state_change(tracked_zone_id)
+                )
 
             self._unsub.append(
                 async_track_state_change_event(
                     self.hass, [entity_id], _on_change
                 )
+            )
+            _LOGGER.debug(
+                "Listening to %s for zone %s (action=%s)",
+                entity_id,
+                zone_id,
+                zone.get("action"),
             )
 
     async def _handle_state_change(self, zone_id: int, *, test: bool = False) -> None:
@@ -149,7 +170,10 @@ class AlarmZoneCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             partition = self._get_zone_partition(zone)
             action_cfg = resolve_action(zone, partition)
-            await self.actions.mirror_off(zone, action_cfg)
+            if action_cfg.get("action") == ACTION_MIRROR:
+                await self.actions.mirror_off(zone, action_cfg)
+            elif action_cfg.get("action") == ACTION_PULSE:
+                await self.actions.pulse_off(action_cfg)
         await self.async_refresh()
 
     async def _confirm_alarm(self, zone: dict[str, Any], *, test: bool = False) -> None:
@@ -198,6 +222,12 @@ class AlarmZoneCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         partition = self._get_zone_partition(zone)
         action_cfg = resolve_action(zone, partition)
+        _LOGGER.debug(
+            "Zone %s alarm confirmed; action=%s output=%s",
+            zone_id,
+            action_cfg.get("action"),
+            action_cfg.get("output_entity_id"),
+        )
         await self.actions.execute(zone, action_cfg)
         pid = self._partition_id(zone)
         if pid:

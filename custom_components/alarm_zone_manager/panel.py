@@ -12,7 +12,7 @@ from .const import DOMAIN, PANEL_ICON, PANEL_TITLE, PANEL_URL
 
 KEYPAD_CARD_URL = "/alarm_zone_manager/keypad-card.js"
 DATA_STATIC_REGISTERED = f"{DOMAIN}_static_registered"
-PANEL_JS_VERSION = "0.1.6"
+PANEL_JS_VERSION = "0.1.7"
 
 
 async def async_register_static_assets(hass: HomeAssistant) -> None:

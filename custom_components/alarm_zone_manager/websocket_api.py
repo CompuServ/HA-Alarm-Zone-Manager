@@ -84,6 +84,7 @@ def async_register_websocket_handlers(hass: HomeAssistant) -> None:
         zone = normalize_zone(zone)
         coord.zone_store.update_zone(zone)
         await coord.zone_store.async_save()
+        await coord.async_refresh_listeners()
         await coord.async_refresh()
         connection.send_result(msg["id"], {"success": True, "zone": zone})
 

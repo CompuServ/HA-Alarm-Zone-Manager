@@ -365,6 +365,19 @@ class AlarmZonePanel extends HTMLElement {
         margin-top: 12px;
       }
       .page-info { margin: 0 0 8px; font-size: 14px; }
+      .pulse-fields {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pulse-fields label {
+        min-width: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: normal;
+      }
     `;
   }
 
@@ -701,6 +714,17 @@ class AlarmZonePanel extends HTMLElement {
           </div>`
         : "";
 
+    const pulseRow =
+      draft.action === "pulse"
+        ? `<div class="form-row"><label>Pulse Duration</label>
+            <div class="pulse-fields">
+              <label>H <input id="edit-pulse-hours" type="number" min="0" max="99" value="${draft.pulse_hours ?? 0}" style="width:70px"/></label>
+              <label>M <input id="edit-pulse-minutes" type="number" min="0" max="59" value="${draft.pulse_minutes ?? 0}" style="width:70px"/></label>
+              <label>S <input id="edit-pulse-seconds" type="number" min="0" max="59" value="${draft.pulse_seconds ?? 30}" style="width:70px"/></label>
+            </div>
+          </div>`
+        : "";
+
     const saveError = this._saveError
       ? `<div class="save-error">${this._esc(this._saveError)}</div>`
       : "";
@@ -732,6 +756,7 @@ class AlarmZonePanel extends HTMLElement {
           <select id="edit-action">${this._optionsHtml(ACTION_OPTIONS, draft.action || "disabled")}</select>
         </div>
         ${activateRow}
+        ${pulseRow}
         ${partitionRow}
         ${saveError}
         <div class="edit-actions">
@@ -740,6 +765,13 @@ class AlarmZonePanel extends HTMLElement {
         </div>
       </div>
     </td></tr>`;
+  }
+
+  _formatPulseDuration(zone) {
+    const h = zone.pulse_hours || 0;
+    const m = zone.pulse_minutes || 0;
+    const s = zone.pulse_seconds ?? 30;
+    return `${h}h ${m}m ${s}s`;
   }
 
   _renderZones() {
@@ -766,7 +798,11 @@ class AlarmZonePanel extends HTMLElement {
           <td class="${z.fire_type_editable ? "" : "grayed"}">${this._esc(z.fire_type || "")}</td>
           <td>${z.delay_milliseconds}ms</td>
           <td>${this._esc(z.output_entity_id || "")}</td>
-          <td>${this._esc(z.output_action_display || z.action || "")}</td>
+          <td>${this._esc(z.output_action_display || z.action || "")}${
+            (z.output_action_display || z.action) === "pulse"
+              ? ` (${this._formatPulseDuration(z)})`
+              : ""
+          }</td>
           <td class="${z.partition_editable ? "" : "grayed"}">${this._esc(z.partition)}</td>
           <td><button data-edit-zone="${z.zone_id}">Edit</button></td>
         </tr>`;
@@ -806,6 +842,9 @@ class AlarmZonePanel extends HTMLElement {
     const actionEl = this.shadowRoot.querySelector("#edit-action");
     const intrusionEl = this.shadowRoot.querySelector("#edit-intrusion-type");
     const fireEl = this.shadowRoot.querySelector("#edit-fire-type");
+    const pulseHoursEl = this.shadowRoot.querySelector("#edit-pulse-hours");
+    const pulseMinutesEl = this.shadowRoot.querySelector("#edit-pulse-minutes");
+    const pulseSecondsEl = this.shadowRoot.querySelector("#edit-pulse-seconds");
 
     if (nameEl) draft.zone_name = nameEl.value.trim();
     if (typeEl) draft.zone_type = typeEl.value;
@@ -813,6 +852,9 @@ class AlarmZonePanel extends HTMLElement {
     if (actionEl) draft.action = actionEl.value;
     if (intrusionEl) draft.intrusion_type = intrusionEl.value;
     if (fireEl) draft.fire_type = fireEl.value;
+    if (pulseHoursEl) draft.pulse_hours = parseInt(pulseHoursEl.value, 10) || 0;
+    if (pulseMinutesEl) draft.pulse_minutes = parseInt(pulseMinutesEl.value, 10) || 0;
+    if (pulseSecondsEl) draft.pulse_seconds = parseInt(pulseSecondsEl.value, 10) || 0;
 
     if (draft.zone_type === "automation") {
       draft.partition = "disabled";

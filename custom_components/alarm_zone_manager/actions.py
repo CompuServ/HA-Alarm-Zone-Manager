@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers import entity_registry as er
 
 from .const import (
     ACTION_ACTIVATE,
@@ -15,6 +15,25 @@ from .const import (
     ACTION_PULSE,
     ZONE_TYPE_AUTOMATION,
     delay_to_timedelta,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+_TURN_ON_DOMAINS = frozenset(
+    {
+        "light",
+        "switch",
+        "input_boolean",
+        "input_switch",
+        "siren",
+        "fan",
+        "valve",
+        "cover",
+        "lock",
+        "media_player",
+        "humidifier",
+        "water_heater",
+    }
 )
 
 
@@ -53,11 +72,20 @@ class ActionEngine:
         """Execute resolved action."""
         action = action_cfg.get("action", ACTION_DISABLED)
         output = action_cfg.get("output_entity_id")
-        if action == ACTION_DISABLED or not output:
+        zone_id = zone.get("zone_id")
+        if action == ACTION_DISABLED:
+            _LOGGER.debug("Zone %s action disabled; skipping output", zone_id)
+            return
+        if action in (ACTION_MIRROR, ACTION_PULSE) and not output:
+            _LOGGER.warning(
+                "Zone %s action %s requires output_entity_id", zone_id, action
+            )
             return
         if action == ACTION_MIRROR:
+            _LOGGER.info("Zone %s mirror ON -> %s", zone_id, output)
             await self._set_output(output, True)
         elif action == ACTION_PULSE:
+            _LOGGER.info("Zone %s pulse ON -> %s", zone_id, output)
             await self._set_output(output, True)
             delay = delay_to_timedelta(
                 action_cfg.get("pulse_hours", 0),
@@ -68,7 +96,12 @@ class ActionEngine:
         elif action == ACTION_ACTIVATE:
             target = action_cfg.get("activate_entity_id")
             if target:
+                _LOGGER.info("Zone %s activate -> %s", zone_id, target)
                 await self._activate(target)
+            else:
+                _LOGGER.warning(
+                    "Zone %s activate action missing activate_entity_id", zone_id
+                )
 
     async def mirror_off(self, zone: dict[str, Any], action_cfg: dict[str, Any]) -> None:
         """Turn mirror output off immediately."""
@@ -76,15 +109,33 @@ class ActionEngine:
             return
         output = action_cfg.get("output_entity_id")
         if output:
+            _LOGGER.info("Zone %s mirror OFF -> %s", zone.get("zone_id"), output)
             await self._set_output(output, False)
+
+    async def pulse_off(self, action_cfg: dict[str, Any]) -> None:
+        """Cancel pulse timer and turn output off."""
+        if action_cfg.get("action") != ACTION_PULSE:
+            return
+        output = action_cfg.get("output_entity_id")
+        if not output:
+            return
+        handle = self._pulse_handles.pop(output, None)
+        if handle:
+            handle.cancel()
+        _LOGGER.info("Zone pulse OFF -> %s", output)
+        await self._set_output(output, False)
 
     async def _set_output(self, entity_id: str, on: bool) -> None:
         domain = entity_id.split(".", 1)[0]
         service = "turn_on" if on else "turn_off"
-        if domain in ("light", "switch", "input_boolean", "siren"):
+        if domain in _TURN_ON_DOMAINS:
             await self._hass.services.async_call(
                 domain, service, {"entity_id": entity_id}, blocking=True
             )
+            return
+        await self._hass.services.async_call(
+            "homeassistant", service, {"entity_id": entity_id}, blocking=True
+        )
 
     def _schedule_pulse_off(self, entity_id: str, seconds: float) -> None:
         if entity_id in self._pulse_handles:
