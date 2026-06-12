@@ -13,8 +13,8 @@ from custom_components.alarm_zone_manager.validation import (
 
 def test_validate_zone_name():
     assert validate_zone_name("Zone1")
+    assert validate_zone_name("Zone 1")
     assert not validate_zone_name("")
-    assert not validate_zone_name("Zone 1")
 
 
 def test_weak_codes():

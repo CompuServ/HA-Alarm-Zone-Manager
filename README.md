@@ -46,8 +46,11 @@ HA-Alarm-Zone-Manager/
 └── README.md
 ```
 
+<<<<<<< Updated upstream
 ## Keypads on Dashboard
 
+=======
+>>>>>>> Stashed changes
 1. Enable a keypad in the **Keypads** tab.
 2. Add the custom card `custom:alarm-keypad-card` to a Lovelace dashboard.
 3. Set the `entity` to the keypad helper sensor (e.g. `sensor.intrusion_alarm_keypad_keypad_1`).

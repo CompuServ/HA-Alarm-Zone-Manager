@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from .const import (
+    ACTION_DISABLED,
     CODE_TYPE_NUMERIC,
     DEFAULT_DELAY_MS,
     INTRUSION_TYPE_ENTRY_DELAY_1,
@@ -30,7 +31,7 @@ from .const import (
     normalize_partition,
 )
 
-ZONE_NAME_RE = re.compile(r"^[A-Za-z0-9]{1,32}$")
+ZONE_NAME_RE = re.compile(r"^[A-Za-z0-9 ]{1,32}$")
 PARTITION_NAME_RE = re.compile(r"^[A-Za-z0-9]{0,16}$")
 
 
@@ -169,15 +170,8 @@ def normalize_zone(zone: dict[str, Any]) -> dict[str, Any]:
     z["partition_editable"] = zone_type in (ZONE_TYPE_INTRUSION, ZONE_TYPE_FIRE)
     z["intrusion_type_editable"] = zone_type == ZONE_TYPE_INTRUSION
     z["fire_type_editable"] = zone_type == ZONE_TYPE_FIRE
-    z["output_action_editable"] = zone_type == ZONE_TYPE_AUTOMATION
-    if zone_type in (ZONE_TYPE_INTRUSION, ZONE_TYPE_FIRE):
-        part = z.get("partition", PARTITION_DISABLED)
-        if part not in (PARTITION_DISABLED, "disabled", None, ""):
-            z["output_action_display"] = f"Controlled by Partition {part}"
-        else:
-            z["output_action_display"] = "Set partition action"
-    else:
-        z["output_action_display"] = z.get("action", "disabled")
+    z["output_action_editable"] = True
+    z["output_action_display"] = z.get("action", ACTION_DISABLED)
     return z
 
 

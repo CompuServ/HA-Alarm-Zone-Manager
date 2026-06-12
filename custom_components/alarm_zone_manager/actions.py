@@ -13,7 +13,6 @@ from .const import (
     ACTION_DISABLED,
     ACTION_MIRROR,
     ACTION_PULSE,
-    PARTITION_DISABLED,
     ZONE_TYPE_AUTOMATION,
     delay_to_timedelta,
 )
@@ -33,18 +32,13 @@ def resolve_action(
             "pulse_minutes": zone.get("pulse_minutes", 0),
             "pulse_seconds": zone.get("pulse_seconds", 30),
         }
-    if not partition:
-        return {"action": ACTION_DISABLED}
-    part = str(zone.get("partition", PARTITION_DISABLED))
-    if part in (PARTITION_DISABLED, "disabled", ""):
-        return {"action": ACTION_DISABLED}
     return {
-        "action": partition.get("activation_action", ACTION_DISABLED),
+        "action": zone.get("action", ACTION_DISABLED),
         "output_entity_id": zone.get("output_entity_id"),
-        "activate_entity_id": partition.get("activate_entity_id"),
-        "pulse_hours": partition.get("pulse_hours", 0),
-        "pulse_minutes": partition.get("pulse_minutes", 0),
-        "pulse_seconds": partition.get("pulse_seconds", 30),
+        "activate_entity_id": zone.get("activate_entity_id"),
+        "pulse_hours": zone.get("pulse_hours", 0),
+        "pulse_minutes": zone.get("pulse_minutes", 0),
+        "pulse_seconds": zone.get("pulse_seconds", 30),
     }
 
 
