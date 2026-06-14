@@ -1,0 +1,57 @@
+Guide: Editing Zones
+======================
+
+Alarm Zone Manager — Zones Tab Edit Reference
+
+Zone Name
+---------
+32 character alphanumeric name (letters, numbers, and spaces).
+
+Zone Type
+---------
+Automation
+  Select for general automation.
+
+Intrusion Alarm
+  Select for burglary, hold-up, or auxiliary alarm input.
+
+Fire Alarm
+  Select for fire or other life safety alarm input.
+
+Input Entity
+------------
+Select an input entity, switch, sensor, or other input device that
+represents the zone's alarm input.
+
+Debounce/Alarm Delay
+--------------------
+Select the duration the input must remain in an active alarm state
+before the output action is triggered (milliseconds).
+
+Output Entity
+-------------
+Select an output entity, relay, smart plug, or other output device
+controlled when the zone action runs.
+
+Action
+------
+Disabled
+  No output action is performed.
+
+Follow Input
+  Activate the output whenever the input goes into alarm; deactivate
+  whenever the input restores to normal.
+
+Pulse
+  Temporarily activate the output for a user-defined duration in
+  hours, minutes, and seconds (1 second to 99 hours, 59 minutes,
+  59 seconds).
+
+Trigger Automation
+  Run a selected Automation, Scene, or Script entity when the zone
+  enters alarm.
+
+Partition (Intrusion / Fire zones only)
+---------------------------------------
+Assign the zone to a single partition (1–32) for intrusion or fire
+alarm logic, or leave unassigned.
